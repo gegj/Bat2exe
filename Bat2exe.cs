@@ -1,4 +1,4 @@
-// Bat2exe v0.3.0
+// Bat2exe v0.3.1
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.0.0")]
-[assembly: AssemblyFileVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.3.1.0")]
+[assembly: AssemblyFileVersion("0.3.1.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -63,13 +63,26 @@ public sealed class Bat2exe : Form
 
     private void BuildUi()
     {
-        Label titleLabel = new Label();
-        titleLabel.Text = "Bat2exe";
-        titleLabel.Font = new Font(Font.FontFamily, 16F, FontStyle.Bold);
-        titleLabel.AutoSize = true;
-        titleLabel.Left = 18;
-        titleLabel.Top = 16;
-        Controls.Add(titleLabel);
+        PictureBox app_icon_picture = new PictureBox();
+        app_icon_picture.Width = 48;
+        app_icon_picture.Height = 48;
+        app_icon_picture.Left = (ClientSize.Width - app_icon_picture.Width) / 2;
+        app_icon_picture.Top = 9;
+        app_icon_picture.SizeMode = PictureBoxSizeMode.Zoom;
+        app_icon_picture.Anchor = AnchorStyles.Top;
+
+        using (Stream icon_stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Bat2exe.Icon"))
+        {
+            if (icon_stream != null)
+            {
+                using (System.Drawing.Icon display_icon = new System.Drawing.Icon(icon_stream, new Size(48, 48)))
+                {
+                    app_icon_picture.Image = display_icon.ToBitmap();
+                }
+            }
+        }
+
+        Controls.Add(app_icon_picture);
 
         int top = 66;
         AddFileRow("BAT 文件", batTextBox, "选择", ChooseBat, top);
