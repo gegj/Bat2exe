@@ -1,8 +1,10 @@
+// Bat2exe v0.1.0
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,7 +12,12 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
-public sealed class Bat2ExeSmallTool : Form
+[assembly: AssemblyTitle("Bat2exe")]
+[assembly: AssemblyProduct("Bat2exe")]
+[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyFileVersion("0.1.0.0")]
+
+public sealed class Bat2exe : Form
 {
     private readonly TextBox batTextBox = new TextBox();
     private readonly TextBox extraFolderTextBox = new TextBox();
@@ -31,12 +38,12 @@ public sealed class Bat2ExeSmallTool : Form
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new Bat2ExeSmallTool());
+        Application.Run(new Bat2exe());
     }
 
-    public Bat2ExeSmallTool()
+    public Bat2exe()
     {
-        Text = "BAT 转 EXE";
+        Text = "Bat2exe";
         Width = 660;
         Height = 550;
         MinimumSize = new Size(600, 520);
@@ -49,7 +56,7 @@ public sealed class Bat2ExeSmallTool : Form
     private void BuildUi()
     {
         Label titleLabel = new Label();
-        titleLabel.Text = "BAT 转 EXE";
+        titleLabel.Text = "Bat2exe";
         titleLabel.Font = new Font(Font.FontFamily, 16F, FontStyle.Bold);
         titleLabel.AutoSize = true;
         titleLabel.Left = 18;
@@ -114,7 +121,7 @@ public sealed class Bat2ExeSmallTool : Form
         statusLabel.ForeColor = Color.FromArgb(55, 55, 55);
         Controls.Add(statusLabel);
 
-        outputTextBox.Text = Path.Combine(Environment.CurrentDirectory, "dist-small");
+        outputTextBox.Text = Path.Combine(Environment.CurrentDirectory, "dist");
     }
 
     private void AddTextRow(string labelText, TextBox textBox, int top, bool password)
@@ -372,7 +379,7 @@ public sealed class Bat2ExeSmallTool : Form
         }
 
         byte[] encryptedBat = AesEncrypt(batBytes, key, iv);
-        string tempFolder = Path.Combine(Path.GetTempPath(), "bat2exe_small_" + Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Combine(Path.GetTempPath(), "bat2exe_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         string sourcePath = Path.Combine(tempFolder, "GeneratedBatRunner.cs");
@@ -832,7 +839,7 @@ public sealed class Bat2ExeSmallTool : Form
         code.AppendLine("");
         code.AppendLine("    private static byte[] MakeVerifierBytes(byte[] key)");
         code.AppendLine("    {");
-        code.AppendLine("        byte[] marker = Encoding.UTF8.GetBytes(\"bat2exe-small-password-check\");");
+        code.AppendLine("        byte[] marker = Encoding.UTF8.GetBytes(\"bat2exe-password-check\");");
         code.AppendLine("        byte[] combined = new byte[key.Length + marker.Length];");
         code.AppendLine("        Buffer.BlockCopy(key, 0, combined, 0, key.Length);");
         code.AppendLine("        Buffer.BlockCopy(marker, 0, combined, key.Length, marker.Length);");
@@ -1170,7 +1177,7 @@ public sealed class Bat2ExeSmallTool : Form
 
     private static byte[] MakeVerifierBytes(byte[] key)
     {
-        byte[] marker = Encoding.UTF8.GetBytes("bat2exe-small-password-check");
+        byte[] marker = Encoding.UTF8.GetBytes("bat2exe-password-check");
         byte[] combined = new byte[key.Length + marker.Length];
         Buffer.BlockCopy(key, 0, combined, 0, key.Length);
         Buffer.BlockCopy(marker, 0, combined, key.Length, marker.Length);
