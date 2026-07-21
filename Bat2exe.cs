@@ -1,4 +1,4 @@
-// Bat2exe v0.2.0
+// Bat2exe v0.2.1
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,8 +14,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.2.0.0")]
-[assembly: AssemblyFileVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.2.1.0")]
+[assembly: AssemblyFileVersion("0.2.1.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -49,6 +49,12 @@ public sealed class Bat2exe : Form
         MinimumSize = new Size(600, 520);
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Microsoft YaHei UI", 9F);
+
+        System.Drawing.Icon app_icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        if (app_icon != null)
+        {
+            Icon = app_icon;
+        }
 
         BuildUi();
     }
@@ -388,6 +394,22 @@ public sealed class Bat2exe : Form
 
         try
         {
+            string compiler_icon_path = config.IconPath;
+            if (string.IsNullOrEmpty(compiler_icon_path))
+            {
+                using (Stream icon_stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Bat2exe.Icon"))
+                {
+                    if (icon_stream != null)
+                    {
+                        compiler_icon_path = Path.Combine(tempFolder, "bat2exe.ico");
+                        using (FileStream icon_file = File.Create(compiler_icon_path))
+                        {
+                            icon_stream.CopyTo(icon_file);
+                        }
+                    }
+                }
+            }
+
             if (extraFiles.Length > 0)
             {
                 SetStatus("正在打包附加文件...");
@@ -427,9 +449,9 @@ public sealed class Bat2exe : Form
             response.AppendLine("/win32manifest:" + QuoteForCompiler(manifestPath));
             response.AppendLine("/out:" + QuoteForCompiler(outputExe));
 
-            if (!string.IsNullOrEmpty(config.IconPath))
+            if (!string.IsNullOrEmpty(compiler_icon_path))
             {
-                response.AppendLine("/win32icon:" + QuoteForCompiler(config.IconPath));
+                response.AppendLine("/win32icon:" + QuoteForCompiler(compiler_icon_path));
             }
 
             for (int i = 0; i < extraFiles.Length; i++)

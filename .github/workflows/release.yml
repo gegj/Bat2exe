@@ -22,11 +22,13 @@ jobs:
           C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
           /nologo /target:winexe /out:Bat2exe.exe
           /reference:System.Windows.Forms.dll
-          /reference:System.Drawing.dll Bat2exe.cs
+          /reference:System.Drawing.dll
+          /win32icon:bat2exe.ico
+          /resource:bat2exe.ico,Bat2exe.Icon Bat2exe.cs
 
       - name: Package
         shell: pwsh
-        run: Compress-Archive -Path Bat2exe.exe,README.md -DestinationPath "Bat2exe-${{ github.ref_name }}-windows.zip"
+        run: Compress-Archive -Path Bat2exe.exe,README.md,ico.png,bat2exe.ico -DestinationPath "Bat2exe-${{ github.ref_name }}-windows.zip"
 
       - name: Create release
         shell: pwsh
