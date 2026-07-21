@@ -1,4 +1,4 @@
-// Bat2exe v0.3.4
+// Bat2exe v0.3.5
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.4.0")]
-[assembly: AssemblyFileVersion("0.3.4.0")]
+[assembly: AssemblyVersion("0.3.5.0")]
+[assembly: AssemblyFileVersion("0.3.5.0")]
 
 public sealed class Bat2exe : Form
 {
