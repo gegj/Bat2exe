@@ -1,4 +1,4 @@
-// Bat2exe v0.3.1
+// Bat2exe v0.3.4
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.1.0")]
-[assembly: AssemblyFileVersion("0.3.1.0")]
+[assembly: AssemblyVersion("0.3.4.0")]
+[assembly: AssemblyFileVersion("0.3.4.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -47,8 +47,8 @@ public sealed class Bat2exe : Form
     {
         Text = "Bat2exe";
         Width = 660;
-        Height = 550;
-        MinimumSize = new Size(600, 520);
+        Height = 500;
+        MinimumSize = new Size(600, 500);
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Microsoft YaHei UI", 9F);
 
@@ -63,28 +63,7 @@ public sealed class Bat2exe : Form
 
     private void BuildUi()
     {
-        PictureBox app_icon_picture = new PictureBox();
-        app_icon_picture.Width = 48;
-        app_icon_picture.Height = 48;
-        app_icon_picture.Left = (ClientSize.Width - app_icon_picture.Width) / 2;
-        app_icon_picture.Top = 9;
-        app_icon_picture.SizeMode = PictureBoxSizeMode.Zoom;
-        app_icon_picture.Anchor = AnchorStyles.Top;
-
-        using (Stream icon_stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Bat2exe.Icon"))
-        {
-            if (icon_stream != null)
-            {
-                using (System.Drawing.Icon display_icon = new System.Drawing.Icon(icon_stream, new Size(48, 48)))
-                {
-                    app_icon_picture.Image = display_icon.ToBitmap();
-                }
-            }
-        }
-
-        Controls.Add(app_icon_picture);
-
-        int top = 66;
+        int top = 20;
         AddFileRow("BAT 文件", batTextBox, "选择", ChooseBat, top);
         top += 40;
         AddFileRow("附加文件夹", extraFolderTextBox, "选择", ChooseExtraFolder, top);
@@ -99,36 +78,36 @@ public sealed class Bat2exe : Form
 
         persistRuntimeFolderCheckBox.Text = "持久化运行环境文件夹";
         persistRuntimeFolderCheckBox.Left = 96;
-        persistRuntimeFolderCheckBox.Top = 314;
+        persistRuntimeFolderCheckBox.Top = 268;
         persistRuntimeFolderCheckBox.Width = 180;
         persistRuntimeFolderCheckBox.CheckedChanged += ToggleRuntimeFolderName;
         Controls.Add(persistRuntimeFolderCheckBox);
 
-        AddTextRow("释放文件夹", runtimeFolderNameTextBox, 346, false);
+        AddTextRow("释放文件夹", runtimeFolderNameTextBox, 300, false);
         runtimeFolderNameTextBox.Enabled = false;
 
         hideWindowCheckBox.Text = "运行时隐藏黑窗口";
         hideWindowCheckBox.Left = 96;
-        hideWindowCheckBox.Top = 386;
+        hideWindowCheckBox.Top = 340;
         hideWindowCheckBox.Width = 160;
         Controls.Add(hideWindowCheckBox);
 
         adminCheckBox.Text = "需要管理员权限";
         adminCheckBox.Left = 270;
-        adminCheckBox.Top = 386;
+        adminCheckBox.Top = 340;
         adminCheckBox.Width = 150;
         Controls.Add(adminCheckBox);
 
         openFolderCheckBox.Text = "生成后打开文件夹";
         openFolderCheckBox.Left = 430;
-        openFolderCheckBox.Top = 386;
+        openFolderCheckBox.Top = 340;
         openFolderCheckBox.Width = 160;
         openFolderCheckBox.Checked = true;
         Controls.Add(openFolderCheckBox);
 
         buildButton.Text = "生成 EXE";
         buildButton.Left = 96;
-        buildButton.Top = 424;
+        buildButton.Top = 378;
         buildButton.Width = 520;
         buildButton.Height = 34;
         buildButton.Click += StartBuild;
@@ -136,7 +115,7 @@ public sealed class Bat2exe : Form
 
         statusLabel.Text = "请选择 BAT 文件，然后点击“生成 EXE”。";
         statusLabel.Left = 96;
-        statusLabel.Top = 468;
+        statusLabel.Top = 422;
         statusLabel.Width = 540;
         statusLabel.Height = 24;
         statusLabel.ForeColor = Color.FromArgb(55, 55, 55);
@@ -190,65 +169,73 @@ public sealed class Bat2exe : Form
 
     private void ChooseBat(object sender, EventArgs e)
     {
-        OpenFileDialog dialog = new OpenFileDialog();
-        dialog.Title = "选择 BAT 文件";
-        dialog.Filter = "BAT/CMD 文件|*.bat;*.cmd|所有文件|*.*";
-
-        if (dialog.ShowDialog(this) != DialogResult.OK)
+        using (OpenFileDialog dialog = new OpenFileDialog())
         {
-            return;
-        }
+            dialog.Title = "选择 BAT 文件";
+            dialog.Filter = "BAT/CMD 文件|*.bat;*.cmd|所有文件|*.*";
 
-        batTextBox.Text = dialog.FileName;
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
 
-        // 默认把 EXE 名称设置成 BAT 文件名，用户也可以自己改。
-        if (string.IsNullOrWhiteSpace(exeNameTextBox.Text))
-        {
-            exeNameTextBox.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
+            batTextBox.Text = dialog.FileName;
+
+            // 默认把 EXE 名称设置成 BAT 文件名，用户也可以自己改。
+            if (string.IsNullOrWhiteSpace(exeNameTextBox.Text))
+            {
+                exeNameTextBox.Text = Path.GetFileNameWithoutExtension(dialog.FileName);
+            }
         }
     }
 
     private void ChooseOutputFolder(object sender, EventArgs e)
     {
-        FolderBrowserDialog dialog = new FolderBrowserDialog();
-        dialog.Description = "选择 EXE 输出目录";
-
-        if (dialog.ShowDialog(this) == DialogResult.OK)
+        using (FolderBrowserDialog dialog = new FolderBrowserDialog())
         {
-            outputTextBox.Text = dialog.SelectedPath;
+            dialog.Description = "选择 EXE 输出目录";
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+            {
+                outputTextBox.Text = dialog.SelectedPath;
+            }
         }
     }
 
     private void ChooseExtraFolder(object sender, EventArgs e)
     {
-        FolderBrowserDialog dialog = new FolderBrowserDialog();
-        dialog.Description = "选择要一起打包的文件夹（可包含 exe、dll 和其它文件）";
-
-        if (dialog.ShowDialog(this) == DialogResult.OK)
+        using (FolderBrowserDialog dialog = new FolderBrowserDialog())
         {
-            extraFolderTextBox.Text = dialog.SelectedPath;
+            dialog.Description = "选择要一起打包的文件夹（可包含 exe、dll 和其它文件）";
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+            {
+                extraFolderTextBox.Text = dialog.SelectedPath;
+            }
         }
     }
 
     private void ChooseIcon(object sender, EventArgs e)
     {
-        OpenFileDialog dialog = new OpenFileDialog();
-        dialog.Title = "选择程序图标";
-        dialog.Filter = "常见图片格式|*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.gif|ICO 图标|*.ico|PNG 图片|*.png|JPEG 图片|*.jpg;*.jpeg|BMP 图片|*.bmp|GIF 图片|*.gif|所有文件|*.*";
-
-        if (dialog.ShowDialog(this) != DialogResult.OK)
+        using (OpenFileDialog dialog = new OpenFileDialog())
         {
-            return;
-        }
+            dialog.Title = "选择程序图标";
+            dialog.Filter = "常见图片格式|*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.gif|ICO 图标|*.ico|PNG 图片|*.png|JPEG 图片|*.jpg;*.jpeg|BMP 图片|*.bmp|GIF 图片|*.gif|所有文件|*.*";
 
-        string error_message;
-        if (!try_validate_icon_image(dialog.FileName, out error_message))
-        {
-            MessageBox.Show(this, error_message, "图标格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+            {
+                return;
+            }
 
-        iconTextBox.Text = dialog.FileName;
+            string error_message;
+            if (!try_validate_icon_image(dialog.FileName, out error_message))
+            {
+                MessageBox.Show(this, error_message, "图标格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            iconTextBox.Text = dialog.FileName;
+        }
     }
 
     private static bool try_validate_icon_image(string image_path, out string error_message)
@@ -335,7 +322,9 @@ public sealed class Bat2exe : Form
 
                     if (config.OpenFolderAfterBuild)
                     {
-                        Process.Start("explorer.exe", "/select,\"" + exePath + "\"");
+                        using (Process explorer_process = Process.Start("explorer.exe", "/select,\"" + exePath + "\""))
+                        {
+                        }
                     }
                 }));
             }
@@ -437,6 +426,7 @@ public sealed class Bat2exe : Form
 
         Directory.CreateDirectory(config.OutputFolder);
         string outputExe = Path.Combine(config.OutputFolder, config.ExeName + ".exe");
+        string compiled_output = Path.Combine(config.OutputFolder, "." + config.ExeName + "." + Guid.NewGuid().ToString("N") + ".tmp.exe");
         PayloadFile[] extraFiles = CollectExtraFiles(config, outputExe);
 
         SetStatus("正在加密 BAT 内容...");
@@ -461,6 +451,7 @@ public sealed class Bat2exe : Form
         }
 
         byte[] encryptedBat = AesEncrypt(batBytes, key, iv);
+        Array.Clear(batBytes, 0, batBytes.Length);
         string tempFolder = Path.Combine(Path.GetTempPath(), "bat2exe_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
@@ -514,11 +505,6 @@ public sealed class Bat2exe : Form
             File.WriteAllText(sourcePath, sourceCode, new UTF8Encoding(true));
             File.WriteAllText(manifestPath, BuildManifest(config.RequireAdmin), new UTF8Encoding(true));
 
-            if (File.Exists(outputExe))
-            {
-                File.Delete(outputExe);
-            }
-
             SetStatus("正在生成 EXE...");
             StringBuilder response = new StringBuilder();
             response.AppendLine("/nologo");
@@ -528,7 +514,7 @@ public sealed class Bat2exe : Form
             response.AppendLine("/r:System.Windows.Forms.dll");
             response.AppendLine("/r:System.Drawing.dll");
             response.AppendLine("/win32manifest:" + QuoteForCompiler(manifestPath));
-            response.AppendLine("/out:" + QuoteForCompiler(outputExe));
+            response.AppendLine("/out:" + QuoteForCompiler(compiled_output));
 
             if (!string.IsNullOrEmpty(compiler_icon_path))
             {
@@ -551,32 +537,50 @@ public sealed class Bat2exe : Form
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
 
-            Process process = Process.Start(startInfo);
-            string stdout = process.StandardOutput.ReadToEnd();
-            string stderr = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
+            using (Process process = Process.Start(startInfo))
             {
-                string detail = (stderr + "\n" + stdout).Trim();
-                if (detail.Length == 0)
+                if (process == null)
                 {
-                    detail = "编译器没有返回详细信息。";
+                    throw new InvalidOperationException("无法启动 C# 编译器。");
                 }
 
-                throw new InvalidOperationException("生成 EXE 失败。\n\n" + detail);
+                string stdout = process.StandardOutput.ReadToEnd();
+                string stderr = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode != 0)
+                {
+                    string detail = (stderr + "\n" + stdout).Trim();
+                    if (detail.Length == 0)
+                    {
+                        detail = "编译器没有返回详细信息。";
+                    }
+
+                    throw new InvalidOperationException("生成 EXE 失败。\n\n" + detail);
+                }
             }
 
-            if (!File.Exists(outputExe))
+            if (!File.Exists(compiled_output))
             {
                 throw new InvalidOperationException("编译器已经结束，但没有找到生成的 EXE 文件。");
+            }
+
+            if (File.Exists(outputExe))
+            {
+                File.Replace(compiled_output, outputExe, null);
+            }
+            else
+            {
+                File.Move(compiled_output, outputExe);
             }
 
             return outputExe;
         }
         finally
         {
-            // 只清理临时源码和清单文件，最终 EXE 会保留在输出目录。
+            Array.Clear(key, 0, key.Length);
+            Array.Clear(encryptedBat, 0, encryptedBat.Length);
+            try_delete_file(compiled_output);
             TryDeleteDirectory(tempFolder);
         }
     }
@@ -742,6 +746,7 @@ public sealed class Bat2exe : Form
         code.AppendLine("                byte[] encryptedBat = Convert.FromBase64String(encryptedText);");
         code.AppendLine("                byte[] iv = Convert.FromBase64String(IvBase64);");
         code.AppendLine("                byte[] batBytes = AesDecrypt(encryptedBat, key, iv);");
+        code.AppendLine("                Array.Clear(encryptedBat, 0, encryptedBat.Length);");
         code.AppendLine("                File.WriteAllBytes(batPath, batBytes);");
         code.AppendLine("                Array.Clear(batBytes, 0, batBytes.Length);");
         code.AppendLine("                if (!PersistRuntimeFolder)");
@@ -756,6 +761,7 @@ public sealed class Bat2exe : Form
         code.AppendLine("            finally");
         code.AppendLine("            {");
         code.AppendLine("                TryDeleteDirectory(tempFolder);");
+        code.AppendLine("                Array.Clear(key, 0, key.Length);");
         code.AppendLine("            }");
         code.AppendLine("        }");
         code.AppendLine("        catch (Exception ex)");
@@ -805,6 +811,7 @@ public sealed class Bat2exe : Form
         code.AppendLine("                return key;");
         code.AppendLine("            }");
         code.AppendLine("");
+        code.AppendLine("            Array.Clear(key, 0, key.Length);");
         code.AppendLine("            MessageBox.Show(\"密码不正确，请重新输入。\", \"密码错误\", MessageBoxButtons.OK, MessageBoxIcon.Warning);");
         code.AppendLine("        }");
         code.AppendLine("");
@@ -832,9 +839,16 @@ public sealed class Bat2exe : Form
         code.AppendLine("            startInfo.WindowStyle = ProcessWindowStyle.Hidden;");
         code.AppendLine("        }");
         code.AppendLine("");
-        code.AppendLine("        Process process = Process.Start(startInfo);");
-        code.AppendLine("        process.WaitForExit();");
-        code.AppendLine("        return process.ExitCode;");
+        code.AppendLine("        using (Process process = Process.Start(startInfo))");
+        code.AppendLine("        {");
+        code.AppendLine("            if (process == null)");
+        code.AppendLine("            {");
+        code.AppendLine("                throw new InvalidOperationException(\"无法启动命令行程序。\");");
+        code.AppendLine("            }");
+        code.AppendLine("");
+        code.AppendLine("            process.WaitForExit();");
+        code.AppendLine("            return process.ExitCode;");
+        code.AppendLine("        }");
         code.AppendLine("    }");
         code.AppendLine("");
         code.AppendLine("    private static void WriteLauncher(string launcherPath, string batPath, string runtimeFolder)");
@@ -1257,8 +1271,15 @@ public sealed class Bat2exe : Form
             }
 
             byte[] fileIv = RandomBytes(16);
-            byte[] encryptedBytes = AesEncrypt(plainBytes, key, fileIv);
-            Array.Clear(plainBytes, 0, plainBytes.Length);
+            byte[] encryptedBytes;
+            try
+            {
+                encryptedBytes = AesEncrypt(plainBytes, key, fileIv);
+            }
+            finally
+            {
+                Array.Clear(plainBytes, 0, plainBytes.Length);
+            }
 
             files[i].ResourceName = "bat2exe.extra." + i.ToString("000000") + ".bin";
             files[i].IvBase64 = Convert.ToBase64String(fileIv);
@@ -1508,6 +1529,20 @@ public sealed class Bat2exe : Form
             if (Directory.Exists(folder))
             {
                 Directory.Delete(folder, true);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void try_delete_file(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
             }
         }
         catch
