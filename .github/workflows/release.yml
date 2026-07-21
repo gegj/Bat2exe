@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build_release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: cmd
+        run: >-
+          C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
+          /nologo /target:winexe /out:Bat2exe.exe
+          /reference:System.Windows.Forms.dll
+          /reference:System.Drawing.dll Bat2exe.cs
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path Bat2exe.exe,README.md -DestinationPath "Bat2exe-${{ github.ref_name }}-windows.zip"
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "Bat2exe-${{ github.ref_name }}-windows.zip" --generate-notes --title "Bat2exe ${{ github.ref_name }}"
