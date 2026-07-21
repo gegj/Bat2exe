@@ -1,8 +1,10 @@
-// Bat2exe v0.2.2
+// Bat2exe v0.3.0
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -14,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.2.2.0")]
-[assembly: AssemblyFileVersion("0.2.2.0")]
+[assembly: AssemblyVersion("0.3.0.0")]
+[assembly: AssemblyFileVersion("0.3.0.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -80,7 +82,7 @@ public sealed class Bat2exe : Form
         top += 40;
         AddTextRow("运行密码", passwordTextBox, top, true);
         top += 40;
-        AddFileRow("图标 ICO", iconTextBox, "选择", ChooseIcon, top);
+        AddFileRow("程序图标", iconTextBox, "选择", ChooseIcon, top);
 
         persistRuntimeFolderCheckBox.Text = "持久化运行环境文件夹";
         persistRuntimeFolderCheckBox.Left = 96;
@@ -218,13 +220,76 @@ public sealed class Bat2exe : Form
     private void ChooseIcon(object sender, EventArgs e)
     {
         OpenFileDialog dialog = new OpenFileDialog();
-        dialog.Title = "选择 ICO 图标";
-        dialog.Filter = "ICO 图标|*.ico|所有文件|*.*";
+        dialog.Title = "选择程序图标";
+        dialog.Filter = "常见图片格式|*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.gif|ICO 图标|*.ico|PNG 图片|*.png|JPEG 图片|*.jpg;*.jpeg|BMP 图片|*.bmp|GIF 图片|*.gif|所有文件|*.*";
 
-        if (dialog.ShowDialog(this) == DialogResult.OK)
+        if (dialog.ShowDialog(this) != DialogResult.OK)
         {
-            iconTextBox.Text = dialog.FileName;
+            return;
         }
+
+        string error_message;
+        if (!try_validate_icon_image(dialog.FileName, out error_message))
+        {
+            MessageBox.Show(this, error_message, "图标格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        iconTextBox.Text = dialog.FileName;
+    }
+
+    private static bool try_validate_icon_image(string image_path, out string error_message)
+    {
+        error_message = "";
+
+        if (!File.Exists(image_path))
+        {
+            error_message = "找不到图标文件，请重新选择。";
+            return false;
+        }
+
+        string extension = Path.GetExtension(image_path).ToLowerInvariant();
+        if (extension != ".ico" && extension != ".png" && extension != ".jpg" && extension != ".jpeg" && extension != ".bmp" && extension != ".gif")
+        {
+            error_message = "仅支持 ICO、PNG、JPG、JPEG、BMP 和 GIF 格式。";
+            return false;
+        }
+
+        try
+        {
+            int width;
+            int height;
+
+            if (extension == ".ico")
+            {
+                using (System.Drawing.Icon selected_icon = new System.Drawing.Icon(image_path))
+                {
+                    width = selected_icon.Width;
+                    height = selected_icon.Height;
+                }
+            }
+            else
+            {
+                using (Image selected_image = Image.FromFile(image_path))
+                {
+                    width = selected_image.Width;
+                    height = selected_image.Height;
+                }
+            }
+
+            if (width != height)
+            {
+                error_message = "程序图标必须是 1:1 正方形图片。当前尺寸：" + width + " x " + height + "。";
+                return false;
+            }
+        }
+        catch (Exception)
+        {
+            error_message = "无法读取图片，文件格式错误或文件已损坏。";
+            return false;
+        }
+
+        return true;
     }
 
     private void ToggleRuntimeFolderName(object sender, EventArgs e)
@@ -312,16 +377,14 @@ public sealed class Bat2exe : Form
             return false;
         }
 
-        if (iconPath.Length > 0 && !File.Exists(iconPath))
+        if (iconPath.Length > 0)
         {
-            MessageBox.Show(this, "找不到图标文件，请重新选择，或者把图标留空。", "请检查设置", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return false;
-        }
-
-        if (iconPath.Length > 0 && Path.GetExtension(iconPath).ToLowerInvariant() != ".ico")
-        {
-            MessageBox.Show(this, "图标必须是 .ico 格式。", "请检查设置", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return false;
+            string error_message;
+            if (!try_validate_icon_image(iconPath, out error_message))
+            {
+                MessageBox.Show(this, error_message, "图标格式错误", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
         }
 
         if (persistRuntimeFolderCheckBox.Checked)
@@ -408,6 +471,11 @@ public sealed class Bat2exe : Form
                         }
                     }
                 }
+            }
+            else if (Path.GetExtension(compiler_icon_path).ToLowerInvariant() != ".ico")
+            {
+                compiler_icon_path = Path.Combine(tempFolder, "custom_icon.ico");
+                convert_image_to_icon(config.IconPath, compiler_icon_path);
             }
 
             if (extraFiles.Length > 0)
@@ -497,6 +565,62 @@ public sealed class Bat2exe : Form
         {
             // 只清理临时源码和清单文件，最终 EXE 会保留在输出目录。
             TryDeleteDirectory(tempFolder);
+        }
+    }
+
+    private static void convert_image_to_icon(string image_path, string icon_path)
+    {
+        int[] icon_sizes = new int[] { 16, 24, 32, 48, 64, 128, 256 };
+        List<byte[]> icon_images = new List<byte[]>();
+
+        using (Image source_image = Image.FromFile(image_path))
+        {
+            for (int i = 0; i < icon_sizes.Length; i++)
+            {
+                int size = icon_sizes[i];
+                using (Bitmap bitmap = new Bitmap(size, size, PixelFormat.Format32bppArgb))
+                using (Graphics graphics = Graphics.FromImage(bitmap))
+                using (MemoryStream image_stream = new MemoryStream())
+                {
+                    graphics.Clear(Color.Transparent);
+                    graphics.CompositingMode = CompositingMode.SourceCopy;
+                    graphics.CompositingQuality = CompositingQuality.HighQuality;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.SmoothingMode = SmoothingMode.HighQuality;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.DrawImage(source_image, new Rectangle(0, 0, size, size));
+                    bitmap.Save(image_stream, ImageFormat.Png);
+                    icon_images.Add(image_stream.ToArray());
+                }
+            }
+        }
+
+        using (FileStream icon_stream = File.Create(icon_path))
+        using (BinaryWriter writer = new BinaryWriter(icon_stream))
+        {
+            writer.Write((ushort)0);
+            writer.Write((ushort)1);
+            writer.Write((ushort)icon_sizes.Length);
+
+            int image_offset = 6 + icon_sizes.Length * 16;
+            for (int i = 0; i < icon_sizes.Length; i++)
+            {
+                byte dimension = icon_sizes[i] == 256 ? (byte)0 : (byte)icon_sizes[i];
+                writer.Write(dimension);
+                writer.Write(dimension);
+                writer.Write((byte)0);
+                writer.Write((byte)0);
+                writer.Write((ushort)1);
+                writer.Write((ushort)32);
+                writer.Write(icon_images[i].Length);
+                writer.Write(image_offset);
+                image_offset += icon_images[i].Length;
+            }
+
+            for (int i = 0; i < icon_images.Count; i++)
+            {
+                writer.Write(icon_images[i]);
+            }
         }
     }
 
