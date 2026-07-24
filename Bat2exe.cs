@@ -1,4 +1,4 @@
-// Bat2exe v0.3.11
+// Bat2exe v0.3.12
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.11.0")]
-[assembly: AssemblyFileVersion("0.3.11.0")]
+[assembly: AssemblyVersion("0.3.12.0")]
+[assembly: AssemblyFileVersion("0.3.12.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -1013,7 +1013,16 @@ public sealed class Bat2exe : Form
         code.AppendLine("            if (File.Exists(path) || Directory.Exists(path))");
         code.AppendLine("            {");
         code.AppendLine("                FileAttributes attributes = File.GetAttributes(path);");
-        code.AppendLine("                File.SetAttributes(path, attributes | FileAttributes.Hidden | FileAttributes.Temporary);");
+        code.AppendLine("                FileAttributes hiddenAttributes = attributes | FileAttributes.Hidden;");
+        code.AppendLine("                if (File.Exists(path))");
+        code.AppendLine("                {");
+        code.AppendLine("                    hiddenAttributes |= FileAttributes.Temporary;");
+        code.AppendLine("                }");
+        code.AppendLine("                else");
+        code.AppendLine("                {");
+        code.AppendLine("                    hiddenAttributes &= ~FileAttributes.Temporary;");
+        code.AppendLine("                }");
+        code.AppendLine("                File.SetAttributes(path, hiddenAttributes);");
         code.AppendLine("            }");
         code.AppendLine("        }");
         code.AppendLine("        catch");
