@@ -1,4 +1,4 @@
-// Bat2exe v0.3.5
+// Bat2exe v0.3.7
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.5.0")]
-[assembly: AssemblyFileVersion("0.3.5.0")]
+[assembly: AssemblyVersion("0.3.7.0")]
+[assembly: AssemblyFileVersion("0.3.7.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -426,7 +426,8 @@ public sealed class Bat2exe : Form
 
         Directory.CreateDirectory(config.OutputFolder);
         string outputExe = Path.Combine(config.OutputFolder, config.ExeName + ".exe");
-        string compiled_output = Path.Combine(config.OutputFolder, "." + config.ExeName + "." + Guid.NewGuid().ToString("N") + ".tmp.exe");
+        string temporary_output_folder = GetTemporaryOutputFolder(config.OutputFolder);
+        string compiled_output = Path.Combine(temporary_output_folder, "output.exe");
         PayloadFile[] extraFiles = CollectExtraFiles(config, outputExe);
 
         SetStatus("正在加密 BAT 内容...");
@@ -581,6 +582,7 @@ public sealed class Bat2exe : Form
             Array.Clear(key, 0, key.Length);
             Array.Clear(encryptedBat, 0, encryptedBat.Length);
             try_delete_file(compiled_output);
+            TryDeleteDirectory(temporary_output_folder);
             TryDeleteDirectory(tempFolder);
         }
     }
@@ -1366,6 +1368,26 @@ public sealed class Bat2exe : Form
         {
             return sha.ComputeHash(combined);
         }
+    }
+
+    private static string GetTemporaryOutputFolder(string output_folder)
+    {
+        for (int attempt = 0; attempt < 100; attempt++)
+        {
+            byte[] name_bytes = RandomBytes(2);
+            string file_name = name_bytes[0].ToString("X2") + name_bytes[1].ToString("X2") + ".tmp";
+            string path = Path.Combine(output_folder, file_name);
+            Array.Clear(name_bytes, 0, name_bytes.Length);
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+                File.SetAttributes(path, FileAttributes.Hidden | FileAttributes.Temporary);
+                return path;
+            }
+        }
+
+        throw new IOException("无法创建临时输出文件名。");
     }
 
     private static byte[] RandomBytes(int length)
