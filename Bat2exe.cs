@@ -1,4 +1,4 @@
-// Bat2exe v0.3.8
+// Bat2exe v0.3.9
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.8.0")]
-[assembly: AssemblyFileVersion("0.3.8.0")]
+[assembly: AssemblyVersion("0.3.9.0")]
+[assembly: AssemblyFileVersion("0.3.9.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -27,10 +27,8 @@ public sealed class Bat2exe : Form
     private readonly TextBox exeNameTextBox = new TextBox();
     private readonly TextBox passwordTextBox = new TextBox();
     private readonly TextBox iconTextBox = new TextBox();
-    private readonly TextBox runtimeFolderNameTextBox = new TextBox();
     private readonly CheckBox hideWindowCheckBox = new CheckBox();
     private readonly CheckBox adminCheckBox = new CheckBox();
-    private readonly CheckBox persistRuntimeFolderCheckBox = new CheckBox();
     private readonly CheckBox openFolderCheckBox = new CheckBox();
     private readonly Button buildButton = new Button();
     private readonly Label statusLabel = new Label();
@@ -76,38 +74,28 @@ public sealed class Bat2exe : Form
         top += 40;
         AddFileRow("程序图标", iconTextBox, "选择", ChooseIcon, top);
 
-        persistRuntimeFolderCheckBox.Text = "持久化运行环境文件夹";
-        persistRuntimeFolderCheckBox.Left = 96;
-        persistRuntimeFolderCheckBox.Top = 268;
-        persistRuntimeFolderCheckBox.Width = 180;
-        persistRuntimeFolderCheckBox.CheckedChanged += ToggleRuntimeFolderName;
-        Controls.Add(persistRuntimeFolderCheckBox);
-
-        AddTextRow("释放文件夹", runtimeFolderNameTextBox, 300, false);
-        runtimeFolderNameTextBox.Enabled = false;
-
         hideWindowCheckBox.Text = "运行时隐藏黑窗口";
         hideWindowCheckBox.Left = 96;
-        hideWindowCheckBox.Top = 340;
+        hideWindowCheckBox.Top = 280;
         hideWindowCheckBox.Width = 160;
         Controls.Add(hideWindowCheckBox);
 
         adminCheckBox.Text = "需要管理员权限";
         adminCheckBox.Left = 270;
-        adminCheckBox.Top = 340;
+        adminCheckBox.Top = 280;
         adminCheckBox.Width = 150;
         Controls.Add(adminCheckBox);
 
         openFolderCheckBox.Text = "生成后打开文件夹";
         openFolderCheckBox.Left = 430;
-        openFolderCheckBox.Top = 340;
+        openFolderCheckBox.Top = 280;
         openFolderCheckBox.Width = 160;
         openFolderCheckBox.Checked = true;
         Controls.Add(openFolderCheckBox);
 
         buildButton.Text = "生成 EXE";
         buildButton.Left = 96;
-        buildButton.Top = 378;
+        buildButton.Top = 318;
         buildButton.Width = 520;
         buildButton.Height = 34;
         buildButton.Click += StartBuild;
@@ -115,7 +103,7 @@ public sealed class Bat2exe : Form
 
         statusLabel.Text = "请选择 BAT 文件，然后点击“生成 EXE”。";
         statusLabel.Left = 96;
-        statusLabel.Top = 422;
+        statusLabel.Top = 362;
         statusLabel.Width = 540;
         statusLabel.Height = 24;
         statusLabel.ForeColor = Color.FromArgb(55, 55, 55);
@@ -292,11 +280,6 @@ public sealed class Bat2exe : Form
         return true;
     }
 
-    private void ToggleRuntimeFolderName(object sender, EventArgs e)
-    {
-        runtimeFolderNameTextBox.Enabled = persistRuntimeFolderCheckBox.Checked;
-    }
-
     private void StartBuild(object sender, EventArgs e)
     {
         BuildConfig config;
@@ -352,7 +335,6 @@ public sealed class Bat2exe : Form
         string outputFolder = outputTextBox.Text.Trim();
         string exeName = MakeSafeFileName(exeNameTextBox.Text);
         string iconPath = iconTextBox.Text.Trim();
-        string runtimeFolderName = runtimeFolderNameTextBox.Text.Trim();
 
         if (!File.Exists(batPath))
         {
@@ -389,19 +371,6 @@ public sealed class Bat2exe : Form
             }
         }
 
-        if (persistRuntimeFolderCheckBox.Checked)
-        {
-            if (!IsSafeFolderName(runtimeFolderName))
-            {
-                MessageBox.Show(this, "释放文件夹名称只能使用中文、字母、数字、空格、点、横线和下划线。", "请检查设置", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-        }
-        else
-        {
-            runtimeFolderName = "";
-        }
-
         config.BatPath = batPath;
         config.ExtraFolder = extraFolder;
         config.OutputFolder = outputFolder;
@@ -410,8 +379,6 @@ public sealed class Bat2exe : Form
         config.IconPath = iconPath;
         config.HideCommandWindow = hideWindowCheckBox.Checked;
         config.RequireAdmin = adminCheckBox.Checked;
-        config.PersistRuntimeFolder = persistRuntimeFolderCheckBox.Checked;
-        config.RuntimeFolderName = runtimeFolderName;
         config.OpenFolderAfterBuild = openFolderCheckBox.Checked;
         return true;
     }
@@ -497,8 +464,6 @@ public sealed class Bat2exe : Form
                 verifier,
                 embeddedKey,
                 config.HideCommandWindow,
-                config.PersistRuntimeFolder,
-                config.RuntimeFolderName,
                 extraFiles
             );
 
@@ -650,8 +615,6 @@ public sealed class Bat2exe : Form
         string passwordVerifierBase64,
         string embeddedKeyBase64,
         bool hideCommandWindow,
-        bool persistRuntimeFolder,
-        string runtimeFolderName,
         PayloadFile[] extraFiles)
     {
         StringBuilder code = new StringBuilder();
@@ -675,8 +638,6 @@ public sealed class Bat2exe : Form
         code.AppendLine("    private const string PasswordVerifierBase64 = " + CsString(passwordVerifierBase64) + ";");
         code.AppendLine("    private const string EmbeddedKeyBase64 = " + CsString(embeddedKeyBase64) + ";");
         code.AppendLine("    private const bool HideCommandWindow = " + (hideCommandWindow ? "true" : "false") + ";");
-        code.AppendLine("    private const bool PersistRuntimeFolder = " + (persistRuntimeFolder ? "true" : "false") + ";");
-        code.AppendLine("    private const string RuntimeFolderName = " + CsString(runtimeFolderName) + ";");
         code.AppendLine("    private const bool HasExtraFiles = " + (extraFiles.Length > 0 ? "true" : "false") + ";");
         code.AppendLine("    private static readonly string[] EncryptedBatChunks = new string[]");
         code.AppendLine("    {");
@@ -721,23 +682,16 @@ public sealed class Bat2exe : Form
         code.AppendLine("            }");
         code.AppendLine("");
         code.AppendLine("            string tempFolder = CreateTemporaryRuntimeFolder();");
-        code.AppendLine("            string runtimeFolder = GetRuntimeFolder(tempFolder);");
         code.AppendLine("            Directory.CreateDirectory(tempFolder);");
-        code.AppendLine("            Directory.CreateDirectory(runtimeFolder);");
         code.AppendLine("            HidePathIfPossible(tempFolder);");
-        code.AppendLine("            if (!PersistRuntimeFolder)");
-        code.AppendLine("            {");
-        code.AppendLine("                HidePathIfPossible(runtimeFolder);");
-        code.AppendLine("            }");
         code.AppendLine("            string batExtension = Path.GetExtension(BatName);");
         code.AppendLine("            if (string.IsNullOrEmpty(batExtension))");
         code.AppendLine("            {");
         code.AppendLine("                batExtension = \".cmd\";");
         code.AppendLine("            }");
-        code.AppendLine("            string batFileName = PersistRuntimeFolder ? \"payload\" + batExtension : \"payload_\" + Guid.NewGuid().ToString(\"N\") + batExtension;");
+        code.AppendLine("            string batFileName = \"payload_\" + Guid.NewGuid().ToString(\"N\") + batExtension;");
         code.AppendLine("            string launcherFileName = \"run_\" + Guid.NewGuid().ToString(\"N\") + \".cmd\";");
-        code.AppendLine("            string batFolder = PersistRuntimeFolder ? runtimeFolder : tempFolder;");
-        code.AppendLine("            string batPath = Path.Combine(batFolder, batFileName);");
+        code.AppendLine("            string batPath = Path.Combine(tempFolder, batFileName);");
         code.AppendLine("            string launcherPath = Path.Combine(tempFolder, launcherFileName);");
         code.AppendLine("");
         code.AppendLine("            try");
@@ -749,12 +703,9 @@ public sealed class Bat2exe : Form
         code.AppendLine("                Array.Clear(encryptedBat, 0, encryptedBat.Length);");
         code.AppendLine("                File.WriteAllBytes(batPath, batBytes);");
         code.AppendLine("                Array.Clear(batBytes, 0, batBytes.Length);");
-        code.AppendLine("                if (!PersistRuntimeFolder)");
-        code.AppendLine("                {");
-        code.AppendLine("                    HidePathIfPossible(batPath);");
-        code.AppendLine("                }");
-        code.AppendLine("                ExtractExtraFiles(runtimeFolder, key, !PersistRuntimeFolder);");
-        code.AppendLine("                WriteLauncher(launcherPath, batPath, runtimeFolder);");
+        code.AppendLine("                HidePathIfPossible(batPath);");
+        code.AppendLine("                ExtractExtraFiles(tempFolder, key, true);");
+        code.AppendLine("                WriteLauncher(launcherPath, batPath, tempFolder);");
         code.AppendLine("                HidePathIfPossible(launcherPath);");
         code.AppendLine("                return RunBat(launcherFileName, tempFolder, args);");
         code.AppendLine("            }");
@@ -769,22 +720,6 @@ public sealed class Bat2exe : Form
         code.AppendLine("            MessageBox.Show(\"BAT 脚本运行失败，请检查脚本内容或相关文件是否完整。\\n\\n详细信息：\" + SanitizeMessage(ex.Message), \"运行失败\", MessageBoxButtons.OK, MessageBoxIcon.Error);");
         code.AppendLine("            return 1;");
         code.AppendLine("        }");
-        code.AppendLine("    }");
-        code.AppendLine("");
-        code.AppendLine("    private static string GetRuntimeFolder(string tempFolder)");
-        code.AppendLine("    {");
-        code.AppendLine("        if (!PersistRuntimeFolder)");
-        code.AppendLine("        {");
-        code.AppendLine("            return tempFolder;");
-        code.AppendLine("        }");
-        code.AppendLine("");
-        code.AppendLine("        string folderName = RuntimeFolderName.Trim();");
-        code.AppendLine("        if (folderName.Length == 0)");
-        code.AppendLine("        {");
-        code.AppendLine("            folderName = Path.GetFileNameWithoutExtension(Application.ExecutablePath) + \"_files\";");
-        code.AppendLine("        }");
-        code.AppendLine("");
-        code.AppendLine("        return Path.Combine(GetExeFolder(), folderName);");
         code.AppendLine("    }");
         code.AppendLine("");
         code.AppendLine("    private static string CreateTemporaryRuntimeFolder()");
@@ -923,11 +858,6 @@ public sealed class Bat2exe : Form
         code.AppendLine("            return \"\\\"\\\"\";");
         code.AppendLine("        }");
         code.AppendLine("        return \"\\\"\" + value.Replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"\";");
-        code.AppendLine("    }");
-        code.AppendLine("");
-        code.AppendLine("    private static string GetExeFolder()");
-        code.AppendLine("    {");
-        code.AppendLine("        return Path.GetDirectoryName(Application.ExecutablePath);");
         code.AppendLine("    }");
         code.AppendLine("");
         code.AppendLine("    private static string SanitizeMessage(string message)");
@@ -1415,55 +1345,6 @@ public sealed class Bat2exe : Form
         return string.IsNullOrWhiteSpace(name) ? "converted_bat" : name;
     }
 
-    private static bool IsSafeFolderName(string folderName)
-    {
-        if (string.IsNullOrWhiteSpace(folderName))
-        {
-            return false;
-        }
-
-        string name = folderName.Trim();
-        if (name == "." || name == "..")
-        {
-            return false;
-        }
-
-        if (name.IndexOf("..", StringComparison.Ordinal) >= 0)
-        {
-            return false;
-        }
-
-        if (name.EndsWith(".", StringComparison.Ordinal) || name.EndsWith(" ", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (Path.IsPathRooted(name) || name.IndexOf(Path.DirectorySeparatorChar) >= 0 || name.IndexOf(Path.AltDirectorySeparatorChar) >= 0)
-        {
-            return false;
-        }
-
-        char[] invalidChars = Path.GetInvalidFileNameChars();
-        for (int i = 0; i < invalidChars.Length; i++)
-        {
-            if (name.IndexOf(invalidChars[i]) >= 0)
-            {
-                return false;
-            }
-        }
-
-        for (int i = 0; i < name.Length; i++)
-        {
-            char ch = name[i];
-            if (!char.IsLetterOrDigit(ch) && ch != ' ' && ch != '.' && ch != '-' && ch != '_')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private static string FindCscPath()
     {
         string runtimeCsc = Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "csc.exe");
@@ -1600,8 +1481,6 @@ public sealed class Bat2exe : Form
         public string IconPath;
         public bool HideCommandWindow;
         public bool RequireAdmin;
-        public bool PersistRuntimeFolder;
-        public string RuntimeFolderName;
         public bool OpenFolderAfterBuild;
     }
 
