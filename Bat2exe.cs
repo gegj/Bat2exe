@@ -1,4 +1,4 @@
-// Bat2exe v0.3.9
+// Bat2exe v0.3.11
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +16,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Bat2exe")]
 [assembly: AssemblyProduct("Bat2exe")]
-[assembly: AssemblyVersion("0.3.9.0")]
-[assembly: AssemblyFileVersion("0.3.9.0")]
+[assembly: AssemblyVersion("0.3.11.0")]
+[assembly: AssemblyFileVersion("0.3.11.0")]
 
 public sealed class Bat2exe : Form
 {
@@ -109,7 +109,7 @@ public sealed class Bat2exe : Form
         statusLabel.ForeColor = Color.FromArgb(55, 55, 55);
         Controls.Add(statusLabel);
 
-        outputTextBox.Text = Path.Combine(Environment.CurrentDirectory, "dist");
+        outputTextBox.Text = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
     }
 
     private void AddTextRow(string labelText, TextBox textBox, int top, bool password)
@@ -705,6 +705,7 @@ public sealed class Bat2exe : Form
         code.AppendLine("                Array.Clear(batBytes, 0, batBytes.Length);");
         code.AppendLine("                HidePathIfPossible(batPath);");
         code.AppendLine("                ExtractExtraFiles(tempFolder, key, true);");
+        code.AppendLine("                HideDirectoryTree(tempFolder);");
         code.AppendLine("                WriteLauncher(launcherPath, batPath, tempFolder);");
         code.AppendLine("                HidePathIfPossible(launcherPath);");
         code.AppendLine("                return RunBat(launcherFileName, tempFolder, args);");
@@ -923,6 +924,16 @@ public sealed class Bat2exe : Form
         code.AppendLine("            {");
         code.AppendLine("                HidePathIfPossible(outputPath);");
         code.AppendLine("            }");
+        code.AppendLine("        }");
+        code.AppendLine("    }");
+        code.AppendLine("");
+        code.AppendLine("    private static void HideDirectoryTree(string folder)");
+        code.AppendLine("    {");
+        code.AppendLine("        HidePathIfPossible(folder);");
+        code.AppendLine("        string[] folders = Directory.GetDirectories(folder, \"*\", SearchOption.AllDirectories);");
+        code.AppendLine("        for (int i = 0; i < folders.Length; i++)");
+        code.AppendLine("        {");
+        code.AppendLine("            HidePathIfPossible(folders[i]);");
         code.AppendLine("        }");
         code.AppendLine("    }");
         code.AppendLine("");
